@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluxStream | Pro Video Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top left, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            color: white;
+            scroll-behavior: smooth;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glow-button {
+            transition: 0.3s;
+            background: linear-gradient(45deg, #00d2ff 0%, #3a7bd5 100%);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+        }
+
+        .glow-button:hover {
+            box-shadow: 0 0 25px rgba(0, 210, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .fade-in { animation: fadeIn 0.8s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top: 3px solid #00d2ff;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-12 fade-in">
+            <h1 class="text-5xl font-extrabold mb-2 tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                FLUXSTREAM
+            </h1>
+            <p class="text-gray-400 font-light">Experience seamless YouTube downloads in High Definition</p>
+        </header>
+
+        <!-- Search Section -->
+        <div class="glass p-2 rounded-2xl flex items-center mb-12 fade-in">
+            <input type="text" id="videoUrl" placeholder="Paste YouTube link here..." 
+                class="bg-transparent flex-1 p-4 outline-none text-lg placeholder-gray-500">
+            <button onclick="fetchInfo()" id="searchBtn" class="glow-button px-8 py-4 rounded-xl font-bold flex items-center gap-2">
+                <span id="btnText">ANALYZE</span>
+                <div id="loader" class="loader hidden"></div>
+            </button>
+        </div>
+
+        <!-- Preview Section (Hidden by default) -->
+        <div id="previewCard" class="hidden glass rounded-3xl overflow-hidden fade-in">
+            <div class="grid md:grid-cols-2">
+                <!-- Video Player / Thumbnail -->
+                <div class="bg-black aspect-video flex items-center justify-center relative group">
+                    <div id="playerContainer" class="w-full h-full">
+                        <!-- YouTube Embed will go here -->
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="p-8 flex flex-col justify-between">
+                    <div>
+                        <h2 id="vTitle" class="text-2xl font-bold mb-2 line-clamp-2">Video Title</h2>
+                        <div class="flex gap-4 text-sm text-gray-400 mb-6">
+                            <span><i class="fa-solid fa-user-circle mr-1"></i> <span id="vChannel">Channel</span></span>
+                            <span><i class="fa-solid fa-clock mr-1"></i> <span id="vDuration">0:00</span></span>
+                            <span><i class="fa-solid fa-eye mr-1"></i> <span id="vViews">0</span></span>
+                        </div>
+                    </div>
+
+                    <button onclick="downloadVideo()" id="dlBtn" class="w-full py-4 rounded-xl bg-white text-black font-bold text-lg hover:bg-cyan-400 hover:text-white transition-all flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-download"></i> DOWNLOAD NOW
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-20 text-center text-gray-500 text-sm italic font-light">
+            Crafted for speed. Powered by Flux UI.
+        </footer>
+    </div>
+
+    <script>
+        async function fetchInfo() {
+            const url = document.getElementById('videoUrl').value;
+            const btn = document.getElementById('searchBtn');
+            const loader = document.getElementById('loader');
+            const btnText = document.getElementById('btnText');
+
+            if(!url) return alert("Please enter a URL");
+
+            btnText.classList.add('hidden');
+            loader.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/get_info', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url})
+                });
+                const data = await response.json();
+
+                if(data.error) throw new Error(data.error);
+
+                document.getElementById('vTitle').innerText = data.title;
+                document.getElementById('vChannel').innerText = data.channel;
+                document.getElementById('vDuration').innerText = data.duration;
+                document.getElementById('vViews').innerText = data.views;
+                
+                // Set Preview Player
+                document.getElementById('playerContainer').innerHTML = `
+                    <iframe class="w-full h-full" src="https://www.youtube.com/embed/${data.video_id}?autoplay=0" frameborder="0" allowfullscreen></iframe>
+                `;
+
+                document.getElementById('previewCard').classList.remove('hidden');
+                document.getElementById('previewCard').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btnText.classList.remove('hidden');
+                loader.classList.add('hidden');
+            }
+        }
+
+        async function downloadVideo() {
+            const url = document.getElementById('videoUrl').value;
+            const dlBtn = document.getElementById('dlBtn');
+            
+            dlBtn.innerHTML = `<div class="loader"></div> PROCESSING...`;
+            dlBtn.disabled = true;
+
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url})
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = `${document.getElementById('vTitle').innerText}.mp4`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    const err = await response.json();
+                    alert("Error: " + err.error);
+                }
+            } catch (err) {
+                alert("Download failed.");
+            } finally {
+                dlBtn.innerHTML = `<i class="fa-solid fa-download"></i> DOWNLOAD NOW`;
+                dlBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
