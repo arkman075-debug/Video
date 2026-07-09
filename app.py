@@ -19,11 +19,19 @@ YDL_OPTIONS = {
     'quiet': True,
     'noplaylist': True,
     'cookiefile': COOKIE_FILE,
+    # This section is the key to fixing Error 152
     'extractor_args': {
         'youtube': {
-            'player_client': ['android', 'web_embedded'],
+            # We prioritize 'ios' because it currently bypasses the 152 block
+            'player_client': ['ios', 'android', 'mweb'],
             'player_skip': ['webpage', 'configs'],
         }
+    },
+    # Helps bypass some bot detection
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-us',
     }
 }
 
